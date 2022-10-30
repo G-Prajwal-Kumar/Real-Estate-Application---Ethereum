@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Smart Contract</title>
+	<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+<body>
+<h2 style="text-align: center;">Smart Contract</h2>
+<label for="curmsg">Message : </label>
+<p name="curmsg" id="chk">Wait to Load</p>
+</body>
+<script type="text/javascript">
+	$(document).ready(function(){
+		const web3 = new Web3("https://old-orbital-gadget.ethereum-goerli.discover.quiknode.pro/f91c38087940e0ae240ed7f0824a1b153d8d4122/");
+		const address = "0x55f9666cF36020420D6269878a73a1E838E82166";
+		const abi = [
+		{
+			"inputs": [
+				{
+					"internalType": "string",
+					"name": "firstmessage",
+					"type": "string"
+				}
+			],
+			"stateMutability": "nonpayable",
+			"type": "constructor"
+		},
+		{
+			"anonymous": false,
+			"inputs": [
+				{
+					"indexed": false,
+					"internalType": "string",
+					"name": "oldmsg",
+					"type": "string"
+				},
+				{
+					"indexed": false,
+					"internalType": "string",
+					"name": "newmsg",
+					"type": "string"
+				}
+			],
+			"name": "messagechanged",
+			"type": "event"
+		},
+		{
+			"inputs": [],
+			"name": "message",
+			"outputs": [
+				{
+					"internalType": "string",
+					"name": "",
+					"type": "string"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "string",
+					"name": "newmesssage",
+					"type": "string"
+				}
+			],
+			"name": "update",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		}
+	]
+		var contract = new web3.eth.Contract(abi, address);
+		async function check(){
+			var msg = await contract.methods.message().call();
+			console.log(msg);
+			$("#chk").html(msg);	
+		}
+		check();
+	})
+</script>
+</html>
