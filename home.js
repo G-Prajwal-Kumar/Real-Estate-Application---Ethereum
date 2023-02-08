@@ -1023,185 +1023,187 @@ async function onLoad(){
 		if(PROPERTIESData[i+1].CurrentOwner == window.userWalletAddress) document.getElementById("myNFTs").innerHTML += "<div class='nft' onclick='viewMyNft("+(i)+", \""+(json.image.replace("ipfs://", "https://ipfs.io/ipfs/").replace("/", "\/"))+"\", \""+(json.description)+"\", \""+(json.name)+"\")'><div class='main'><img class='tokenImage' src='"+(json.image.replace("ipfs://", "https://ipfs.io/ipfs/"))+"' alt='NFT'/><p class='description'>"+(json.description)+"</p><hr style='margin-top: 1em'><h3>"+(json.name)+"</h3></div></div></div>"
 	}
 	temp = await CONTRACTContract.viewWhole()
-	temp = JSON.parse(temp)
-	console.log(temp)
-	let users = Object.keys(temp.Auctions)
-	for(let i=0; i<users.length; i++){
-		let tokens = Object.keys(temp.Auctions[users[i]])
-		for(let j=0; j<tokens.length; j++){
-			if(temp.Auctions[users[i]][tokens[j]]["State"] == 1){
-				whole.Auction.Live[tokens[j]] = temp.Auctions[users[i]][tokens[j]];
-				whole.Auction.Live[tokens[j]]["Users"] = users[i];
-			}else if(temp.Auctions[users[i]][tokens[j]]["State"] == 2){
-				whole.Auction.Ended[tokens[j]] = temp.Auctions[users[i]][tokens[j]];
-				whole.Auction.Ended[tokens[j]]["Users"] = users[i];
-			}else{
-				whole.Auction.Cancled[tokens[j]] = temp.Auctions[users[i]][tokens[j]];
-				whole.Auction.Cancled[tokens[j]]["Users"] = users[i];
-			}
-			nft = IPFSData[tokens[j]-1]
-			let value = parseInt(temp.Auctions[users[i]][tokens[j]]["HighestBidderValue"])
-			if(value == 0) value = parseInt(temp.Auctions[users[i]][tokens[j]]["StartingValue"])
-				value += parseInt(temp.Auctions[users[i]][tokens[j]]["Step"])
-			if(temp.Auctions[users[i]][tokens[j]]["State"] == 1){
-				document.getElementById('allAuctions').innerHTML += "<div class='nft' style='margin-bottom: 1em; min-height: 29.3em; max-height: 29.3em'><div class='main'><h3 style='min-height: 2.2em'>"+(nft.name)+"</h3><hr style='margin-top: 0.5em; margin-bottom: 0.5em; border-color: white '><img class='tokenImage' src='"+(nft.image.replace("ipfs://", "https://ipfs.io/ipfs/"))+"' alt='NFT'/><p class='description'>"+(nft.description)+"<div class='tokenInfo'><div class='price'><ins style='margin-top: -0.2em'>◘</ins>Bid Amount - &nbsp<p>"+(value)+"</p></div></div><div><button id='nftBtn1' onclick='viewNft(\"Auction\", "+(tokens[j])+")'>View More</button><button id='nftBtn2' type='text' @click='placeBid("+(tokens[j])+",\""+(users[i])+"\", "+value+")'>Place Bid</button><button id='nftBtn3' type='text' @click='cancelBid("+(tokens[j])+",\""+(users[i])+"\")'>Cancel Bid</button></div></div></div></div>"
-			}
-		}
-
-		tokens = Object.keys(temp.Listings[users[i]])
-		for(let j=0; j<tokens.length; j++){
-			if(temp.Listings[users[i]][tokens[j]]["State"] == 1){
-				whole.Listing.Live[tokens[j]] = temp.Listings[users[i]][tokens[j]];
-				whole.Listing.Live[tokens[j]]["Users"] = users[i];
-			}else if(temp.Listings[users[i]][tokens[j]]["State"] == 2){
-				whole.Listing.Ended[tokens[j]] = temp.Listings[users[i]][tokens[j]];
-				whole.Listing.Ended[tokens[j]]["Users"] = users[i];
-			}else{
-				whole.Listing.Cancled[tokens[j]] = temp.Listings[users[i]][tokens[j]];
-				whole.Listing.Cancled[tokens[j]]["Users"] = users[i];
-			}
-			nft = IPFSData[tokens[j]-1]
-			let value = parseInt(temp.Listings[users[i]][tokens[j]]["ListingValue"])
-			if(temp.Listings[users[i]][tokens[j]]["State"] == 1){
-				document.getElementById('allListings').innerHTML += "<div class='nft' style='margin-bottom: 1.25em; min-height: 27em; max-height: 27em'><div class='main'><h3 style='min-height: 2.2em'>"+(nft.name)+"</h3><hr style='margin-top: 0.5em; margin-bottom: 0.5em; border-color: white'><img class='tokenImage' src='"+(nft.image.replace("ipfs://", "https://ipfs.io/ipfs/"))+"' alt='NFT'/><p class='description'>"+(nft.description)+"<div class='tokenInfo'><div class='price'><ins style='margin-top: -0.2em'>◘</ins>Bid Amount - &nbsp<p>"+(value)+"</p></div></div><div><button id='nftBtn1' onclick='viewNft(\"Listing\", "+(tokens[j])+")'>View More</button><button id='nftBtn2' type='text' @click='buyListing("+(tokens[j])+",\""+(users[i])+"\","+value+")'>Buy Listing</button></div></div></div></div>"
-			}
-		}	
-		var Main1 = {
-			methods: {
-				async buyListing(tokenId, userId, value) {
-					if(document.getElementById('web3').innerHTML != "Web3"){
-						this.$message({
-							message: 'Connect to Web3!',
-							type: 'warning'
-						});
-						return
-					}
-					if(document.getElementById('approveContract').innerHTML == "Approve Contract"){
-						this.$message({
-							message: 'Approve Contract!',
-							type: 'warning'
-						});
-						return
-					}
-					this.$confirm("Listing Value : "+value+"<br>"+"Token ID : "+tokenId+"<br>"+"Confirm Purchase!", 'Warning', {
-						dangerouslyUseHTMLString: true,
-						confirmButtonText: 'Purchase',
-						cancelButtonText: 'Cancel',
-						type: 'warning'
-					}).then(async () => {
-						let CONTRACTContract = await new ethers.Contract(CONTRACTaddress, CONTRACTabi, signers)
-						let placeBid = await CONTRACTContract.buyListing(userId, tokenId, { value: ethers.utils.parseUnits(String(value), "wei")})
-						this.$message({
-							type: 'success',
-							message: 'Purchase Successful!'
-						});
-					}).catch(() => {
-						this.$message({
-							type: 'info',
-							message: 'Purchase Canceled!'
-						});          
-					});
+	if(temp != ""){
+		temp = JSON.parse(temp)
+		console.log(temp)
+		let users = Object.keys(temp.Auctions)
+		for(let i=0; i<users.length; i++){
+			let tokens = Object.keys(temp.Auctions[users[i]])
+			for(let j=0; j<tokens.length; j++){
+				if(temp.Auctions[users[i]][tokens[j]]["State"] == 1){
+					whole.Auction.Live[tokens[j]] = temp.Auctions[users[i]][tokens[j]];
+					whole.Auction.Live[tokens[j]]["Users"] = users[i];
+				}else if(temp.Auctions[users[i]][tokens[j]]["State"] == 2){
+					whole.Auction.Ended[tokens[j]] = temp.Auctions[users[i]][tokens[j]];
+					whole.Auction.Ended[tokens[j]]["Users"] = users[i];
+				}else{
+					whole.Auction.Cancled[tokens[j]] = temp.Auctions[users[i]][tokens[j]];
+					whole.Auction.Cancled[tokens[j]]["Users"] = users[i];
+				}
+				nft = IPFSData[tokens[j]-1]
+				let value = parseInt(temp.Auctions[users[i]][tokens[j]]["HighestBidderValue"])
+				if(value == 0) value = parseInt(temp.Auctions[users[i]][tokens[j]]["StartingValue"])
+					value += parseInt(temp.Auctions[users[i]][tokens[j]]["Step"])
+				if(temp.Auctions[users[i]][tokens[j]]["State"] == 1){
+					document.getElementById('allAuctions').innerHTML += "<div class='nft' style='margin-bottom: 1em; min-height: 29.3em; max-height: 29.3em'><div class='main'><h3 style='min-height: 2.2em'>"+(nft.name)+"</h3><hr style='margin-top: 0.5em; margin-bottom: 0.5em; border-color: white '><img class='tokenImage' src='"+(nft.image.replace("ipfs://", "https://ipfs.io/ipfs/"))+"' alt='NFT'/><p class='description'>"+(nft.description)+"<div class='tokenInfo'><div class='price'><ins style='margin-top: -0.2em'>◘</ins>Bid Amount - &nbsp<p>"+(value)+"</p></div></div><div><button id='nftBtn1' onclick='viewNft(\"Auction\", "+(tokens[j])+")'>View More</button><button id='nftBtn2' type='text' @click='placeBid("+(tokens[j])+",\""+(users[i])+"\", "+value+")'>Place Bid</button><button id='nftBtn3' type='text' @click='cancelBid("+(tokens[j])+",\""+(users[i])+"\")'>Cancel Bid</button></div></div></div></div>"
 				}
 			}
-		}
-		var chkng1 = Vue.extend(Main1)
-		new chkng1().$mount('#allListings')
 
-		var Main2 = {
-			methods: {
-				async placeBid(tokenId, userId, value){
-					if(document.getElementById('web3').innerHTML != "Web3"){
-						this.$message({
-							message: 'Connect to Web3!',
-							type: 'warning'
-						});
-						return
-					}
-					if(document.getElementById('approveContract').innerHTML == "Approve Contract"){
-						this.$message({
-							message: 'Approve Contract!',
-							type: 'warning'
-						});
-						return
-					}
-
-					this.$notify({title: 'Prompt', message: 'Any Previously Placed Bid will be Re-funded!', duration: 0});
-					this.$prompt('Enter Bid Value', 'Price', {
-						confirmButtonText: 'OK',
-						cancelButtonText: 'Cancel'
-					}).then((valuex) => {
-						valuex = valuex.value
-						if(valuex <= value){
+			tokens = Object.keys(temp.Listings[users[i]])
+			for(let j=0; j<tokens.length; j++){
+				if(temp.Listings[users[i]][tokens[j]]["State"] == 1){
+					whole.Listing.Live[tokens[j]] = temp.Listings[users[i]][tokens[j]];
+					whole.Listing.Live[tokens[j]]["Users"] = users[i];
+				}else if(temp.Listings[users[i]][tokens[j]]["State"] == 2){
+					whole.Listing.Ended[tokens[j]] = temp.Listings[users[i]][tokens[j]];
+					whole.Listing.Ended[tokens[j]]["Users"] = users[i];
+				}else{
+					whole.Listing.Cancled[tokens[j]] = temp.Listings[users[i]][tokens[j]];
+					whole.Listing.Cancled[tokens[j]]["Users"] = users[i];
+				}
+				nft = IPFSData[tokens[j]-1]
+				let value = parseInt(temp.Listings[users[i]][tokens[j]]["ListingValue"])
+				if(temp.Listings[users[i]][tokens[j]]["State"] == 1){
+					document.getElementById('allListings').innerHTML += "<div class='nft' style='margin-bottom: 1.25em; min-height: 27em; max-height: 27em'><div class='main'><h3 style='min-height: 2.2em'>"+(nft.name)+"</h3><hr style='margin-top: 0.5em; margin-bottom: 0.5em; border-color: white'><img class='tokenImage' src='"+(nft.image.replace("ipfs://", "https://ipfs.io/ipfs/"))+"' alt='NFT'/><p class='description'>"+(nft.description)+"<div class='tokenInfo'><div class='price'><ins style='margin-top: -0.2em'>◘</ins>Bid Amount - &nbsp<p>"+(value)+"</p></div></div><div><button id='nftBtn1' onclick='viewNft(\"Listing\", "+(tokens[j])+")'>View More</button><button id='nftBtn2' type='text' @click='buyListing("+(tokens[j])+",\""+(users[i])+"\","+value+")'>Buy Listing</button></div></div></div></div>"
+				}
+			}	
+			var Main1 = {
+				methods: {
+					async buyListing(tokenId, userId, value) {
+						if(document.getElementById('web3').innerHTML != "Web3"){
 							this.$message({
-								type: 'warning',
-								message: 'Invalid Bid Amount'
+								message: 'Connect to Web3!',
+								type: 'warning'
 							});
 							return
 						}
-						this.$confirm("Bid Value : "+valuex+"<br>"+"Token ID : "+tokenId+"<br>"+"Confirm to Place Bid!", 'Warning', {
+						if(document.getElementById('approveContract').innerHTML == "Approve Contract"){
+							this.$message({
+								message: 'Approve Contract!',
+								type: 'warning'
+							});
+							return
+						}
+						this.$confirm("Listing Value : "+value+"<br>"+"Token ID : "+tokenId+"<br>"+"Confirm Purchase!", 'Warning', {
+							dangerouslyUseHTMLString: true,
 							confirmButtonText: 'Purchase',
 							cancelButtonText: 'Cancel',
-							dangerouslyUseHTMLString: true,
 							type: 'warning'
 						}).then(async () => {
-
 							let CONTRACTContract = await new ethers.Contract(CONTRACTaddress, CONTRACTabi, signers)
-							let placeBid = await CONTRACTContract.placeBid(userId, tokenId, { value: ethers.utils.parseUnits(valuex, "wei")})
-							console.log("hello")
+							let placeBid = await CONTRACTContract.buyListing(userId, tokenId, { value: ethers.utils.parseUnits(String(value), "wei")})
 							this.$message({
 								type: 'success',
-								message: 'Bid Placed!'
+								message: 'Purchase Successful!'
 							});
 						}).catch(() => {
 							this.$message({
 								type: 'info',
-								message: 'Bid Canceled!'
+								message: 'Purchase Canceled!'
 							});          
 						});
-					}).catch(() => {
-						this.$message({
-							type: 'info',
-							message: 'Input canceled'
-						});       
-					});
-				},
-				async cancelBid(tokenId, userId){
-					if(document.getElementById('web3').innerHTML != "Web3"){
-						this.$message({
-							message: 'Connect to Web3!',
-							type: 'warning'
-						});
-						return
 					}
-					if(document.getElementById('approveContract').innerHTML == "Approve Contract"){
-						this.$message({
-							message: 'Approve Contract!',
-							type: 'warning'
-						});
-						return
-					}
-					this.$confirm("Confirm to Cancel Your Bid!", 'Warning', {
-						confirmButtonText: 'Cancel Bid',
-						cancelButtonText: 'No',
-						type: 'warning'
-					}).then(async () => {
-						let CONTRACTContract = await new ethers.Contract(CONTRACTaddress, CONTRACTabi, signers)
-						let placeBid = await CONTRACTContract.cancelBid(userId, tokenId)
-						this.$message({
-							type: 'success',
-							message: 'Bid Canceled!'
-						});
-					}).catch(() => {
-						this.$message({
-							type: 'info',
-							message: 'Bid not Canceled!'
-						});          
-					});
 				}
 			}
+			var chkng1 = Vue.extend(Main1)
+			new chkng1().$mount('#allListings')
+
+			var Main2 = {
+				methods: {
+					async placeBid(tokenId, userId, value){
+						if(document.getElementById('web3').innerHTML != "Web3"){
+							this.$message({
+								message: 'Connect to Web3!',
+								type: 'warning'
+							});
+							return
+						}
+						if(document.getElementById('approveContract').innerHTML == "Approve Contract"){
+							this.$message({
+								message: 'Approve Contract!',
+								type: 'warning'
+							});
+							return
+						}
+
+						this.$notify({title: 'Prompt', message: 'Any Previously Placed Bid will be Re-funded!', duration: 0});
+						this.$prompt('Enter Bid Value', 'Price', {
+							confirmButtonText: 'OK',
+							cancelButtonText: 'Cancel'
+						}).then((valuex) => {
+							valuex = valuex.value
+							if(valuex <= value){
+								this.$message({
+									type: 'warning',
+									message: 'Invalid Bid Amount'
+								});
+								return
+							}
+							this.$confirm("Bid Value : "+valuex+"<br>"+"Token ID : "+tokenId+"<br>"+"Confirm to Place Bid!", 'Warning', {
+								confirmButtonText: 'Purchase',
+								cancelButtonText: 'Cancel',
+								dangerouslyUseHTMLString: true,
+								type: 'warning'
+							}).then(async () => {
+
+								let CONTRACTContract = await new ethers.Contract(CONTRACTaddress, CONTRACTabi, signers)
+								let placeBid = await CONTRACTContract.placeBid(userId, tokenId, { value: ethers.utils.parseUnits(valuex, "wei")})
+								console.log("hello")
+								this.$message({
+									type: 'success',
+									message: 'Bid Placed!'
+								});
+							}).catch(() => {
+								this.$message({
+									type: 'info',
+									message: 'Bid Canceled!'
+								});          
+							});
+						}).catch(() => {
+							this.$message({
+								type: 'info',
+								message: 'Input canceled'
+							});       
+						});
+					},
+					async cancelBid(tokenId, userId){
+						if(document.getElementById('web3').innerHTML != "Web3"){
+							this.$message({
+								message: 'Connect to Web3!',
+								type: 'warning'
+							});
+							return
+						}
+						if(document.getElementById('approveContract').innerHTML == "Approve Contract"){
+							this.$message({
+								message: 'Approve Contract!',
+								type: 'warning'
+							});
+							return
+						}
+						this.$confirm("Confirm to Cancel Your Bid!", 'Warning', {
+							confirmButtonText: 'Cancel Bid',
+							cancelButtonText: 'No',
+							type: 'warning'
+						}).then(async () => {
+							let CONTRACTContract = await new ethers.Contract(CONTRACTaddress, CONTRACTabi, signers)
+							let placeBid = await CONTRACTContract.cancelBid(userId, tokenId)
+							this.$message({
+								type: 'success',
+								message: 'Bid Canceled!'
+							});
+						}).catch(() => {
+							this.$message({
+								type: 'info',
+								message: 'Bid not Canceled!'
+							});          
+						});
+					}
+				}
+			}
+			var chkng2 = Vue.extend(Main2)
+			new chkng2().$mount('#allAuctions')
 		}
-		var chkng2 = Vue.extend(Main2)
-		new chkng2().$mount('#allAuctions')
 	}
 	window.text.endLoading();
 	console.log(whole)
